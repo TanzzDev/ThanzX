@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp API Panel</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+
+/* THEME */
+:root{
+ --bg-main:#f0f2f5;
+ --bg-sidebar:#ffffff;
+ --bg-header:#ffffff;
+ --bg-chat:#e5ddd5;
+ --bg-user:#dcf8c6;
+ --bg-bot:#ffffff;
+ --text:#111;
+ --border:#ddd;
+ --accent:#25d366;
+}
+.dark{
+ --bg-main:#0b141a;
+ --bg-sidebar:#202c33;
+ --bg-header:#202c33;
+ --bg-chat:#111b21;
+ --bg-user:#005c4b;
+ --bg-bot:#202c33;
+ --text:#ffffff;
+ --border:#1f2c34;
+ --accent:#00a884;
+}
+
+body{
+ display:flex;
+ height:100vh;
+ background:var(--bg-main);
+ color:var(--text);
+}
+
+/* SIDEBAR */
+.sidebar{
+ width:230px;
+ background:var(--bg-sidebar);
+ padding:20px;
+ border-right:1px solid var(--border);
+ display:flex;
+ flex-direction:column;
+}
+.sidebar h2{margin-bottom:20px}
+.sidebar button{
+ padding:12px;
+ margin-bottom:10px;
+ border:none;
+ border-radius:8px;
+ background:var(--bg-chat);
+ cursor:pointer;
+ color:var(--text);
+}
+.sidebar button:hover{
+ background:var(--accent);
+ color:white;
+}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column}
+.header{
+ background:var(--bg-header);
+ padding:15px;
+ border-bottom:1px solid var(--border);
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ font-weight:bold;
+}
+
+.chat-wrapper{flex:1;display:flex}
+
+.chat-box{
+ flex:1;
+ display:flex;
+ flex-direction:column;
+ border-right:1px solid var(--border);
+ background:var(--bg-chat);
+}
+
+.bot-box{
+ width:35%;
+ background:var(--bg-sidebar);
+ display:flex;
+ flex-direction:column;
+}
+
+.chat-area{
+ flex:1;
+ padding:20px;
+ overflow-y:auto;
+}
+
+.message{
+ max-width:75%;
+ padding:10px 14px;
+ border-radius:12px;
+ margin-bottom:10px;
+ font-size:14px;
+ word-wrap:break-word;
+}
+
+.user{
+ background:var(--bg-user);
+ margin-left:auto;
+}
+
+.bot{
+ background:var(--bg-bot);
+ border:1px solid var(--border);
+}
+
+.typing{
+ font-style:italic;
+ opacity:0.7;
+}
+
+/* INPUT */
+.input-area{
+ display:flex;
+ padding:10px;
+ background:var(--bg-header);
+ border-top:1px solid var(--border);
+}
+
+.input-area input{
+ flex:1;
+ padding:10px;
+ border:1px solid var(--border);
+ border-radius:20px;
+ outline:none;
+}
+
+.input-area button{
+ margin-left:8px;
+ padding:10px 16px;
+ border:none;
+ border-radius:20px;
+ background:var(--accent);
+ color:white;
+ cursor:pointer;
+}
+
+.report{
+ display:none;
+ padding:20px;
+}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+ <h2>Dashboard</h2>
+ <button onclick="showPublic()">Public</button>
+ <button onclick="showReport()">Report</button>
+</div>
+
+<div class="main">
+ <div class="header">
+   WhatsApp API Panel
+   <button onclick="toggleTheme()">🌙 / ☀️</button>
+ </div>
+
+ <div id="publicView" class="chat-wrapper">
+
+   <div class="chat-box">
+     <div class="chat-area" id="userChat"></div>
+
+     <div class="input-area">
+       <input type="text" id="msgInput" placeholder="Ketik pesan..." onkeydown="if(event.key==='Enter') sendMessage()">
+       <button onclick="sendMessage()">Kirim</button>
+     </div>
+   </div>
+
+   <div class="bot-box">
+     <div style="padding:15px;border-bottom:1px solid var(--border)">
+       <strong>Bot Console</strong>
+     </div>
+     <div class="chat-area" id="botChat"></div>
+   </div>
+
+ </div>
+
+ <div id="reportView" class="report">
+   <h3>Server Report</h3>
+   <br>
+   <p>Status API : <span id="apiStatus">Checking...</span></p>
+   <p>Total Message : <span id="msgCount">0</span></p>
+   <p>Server : nel-svip.kynasx.cloud</p>
+ </div>
+
+</div>
+
+<script>
+
+let totalMessage = 0;
+
+/* THEME */
+function toggleTheme(){
+ document.body.classList.toggle("dark");
+}
+
+/* VIEW */
+function showPublic(){
+ document.getElementById("publicView").style.display="flex";
+ document.getElementById("reportView").style.display="none";
+}
+function showReport(){
+ document.getElementById("publicView").style.display="none";
+ document.getElementById("reportView").style.display="block";
+}
+
+/* SEND MESSAGE */
+async function sendMessage(){
+ const input = document.getElementById("msgInput");
+ const text = input.value.trim();
+ if(!text) return;
+
+ const userChat = document.getElementById("userChat");
+ const botChat = document.getElementById("botChat");
+
+ // tampilkan pesan user
+ const msg = document.createElement("div");
+ msg.className="message user";
+ msg.innerText=text;
+ userChat.appendChild(msg);
+ userChat.scrollTop=userChat.scrollHeight;
+
+ input.value="";
+ totalMessage++;
+ document.getElementById("msgCount").innerText=totalMessage;
+
+ // typing indicator
+ const typing = document.createElement("div");
+ typing.className="message bot typing";
+ typing.innerText="Bot sedang mengetik...";
+ botChat.appendChild(typing);
+ botChat.scrollTop=botChat.scrollHeight;
+
+ try{
+   const res = await fetch("http://nel-svip.kynasx.cloud:2126/chat",{
+     method:"POST",
+     headers:{
+       "Content-Type":"application/json",
+       "Authorization":"api-ThanzX"
+     },
+     body:JSON.stringify({message:text})
+   });
+
+   const data = await res.json();
+
+   typing.remove();
+
+   const botMsg = document.createElement("div");
+   botMsg.className="message bot";
+   botMsg.innerText=data.reply || "Tidak ada respon";
+   botChat.appendChild(botMsg);
+   botChat.scrollTop=botChat.scrollHeight;
+
+ }catch(err){
+   typing.remove();
+   const errorMsg = document.createElement("div");
+   errorMsg.className="message bot";
+   errorMsg.innerText="Gagal connect ke API";
+   botChat.appendChild(errorMsg);
+ }
+}
+
+/* CHECK API STATUS */
+async function checkAPI(){
+ try{
+   await fetch("http://nel-svip.kynasx.cloud:2126/chat",{
+     method:"OPTIONS"
+   });
+   document.getElementById("apiStatus").innerText="Online";
+ }catch{
+   document.getElementById("apiStatus").innerText="Offline";
+ }
+}
+checkAPI();
+
+</script>
+</body>
+</html>
